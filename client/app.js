@@ -35,6 +35,7 @@ let history = [];
 // Sustained detection & Cooldown tracking
 let soundTracker = {
   label: null,
+  isCritical: false,
   count: 0,
   startTime: 0
 };
@@ -233,31 +234,50 @@ startBtn.addEventListener('click', async () => {
               const isCritical = isCriticalSound(top.categoryName);
 
               // LOGIC: Sustained Sound Detection
-              // If the top sound is same as before, increment count
-              if (soundTracker.label === top.categoryName) {
+              // Improved: If both are CRITICAL, we treat them as the same "event" to handle flickering
+              // e.g. "Fire Alarm" -> "Alarm" -> "Fire Alarm" should keep counting up.
+
+              const isSameLabel = soundTracker.label === top.categoryName;
+              const isFlowingCritical = isCritical && soundTracker.isCritical; // Both are critical
+
+              if (isSameLabel || isFlowingCritical) {
                 soundTracker.count++;
+                // Update label to the most recent one if it's critical, to ensure we catch the specific type
+                if (isCritical) soundTracker.label = top.categoryName;
               } else {
                 soundTracker.label = top.categoryName;
+                soundTracker.isCritical = isCritical;
                 soundTracker.count = 1;
                 soundTracker.startTime = Date.now();
               }
 
               // Visual Log
-              if (soundTracker.count === 1) { // Only log distinct new events to reduce spam
+              if (soundTracker.count === 1 || (isCritical && soundTracker.count % 5 === 0)) {
+                // Log start of new sound, or re-log sustained criticals occasionally
                 addToLog(top.categoryName, top.score, isCritical);
               }
 
-              // TRIGGER CONDITION for CLAUDE
-              // 1. Must be critical or high confidence
-              // 2. Must be sustained (count > threshold)
-              // 3. Must not be in cooldown
+              // --- ENHANCED TRIGGER LOGIC ---
+              // 1. Logic for Impulse Sounds (Gunshot, Glass Break) -> Immediate Trigger
+              // 2. Logic for Sustained Sounds (Alarm, Siren) -> Wait for threshold
+
+              const IMPULSE_SOUNDS = [
+                'gunshot', 'shot', 'glass', 'break', 'shatter', 'explosion', 'crash'
+              ];
+
+              function isImpulseSound(label) {
+                const lower = label.toLowerCase();
+                return IMPULSE_SOUNDS.some(x => lower.includes(x));
+              }
 
               const now = Date.now();
               const isSustained = soundTracker.count >= SUSTAINED_THRESHOLD;
+              const isImpulse = isImpulseSound(top.categoryName);
               const inCooldown = (now - lastTriggerTime) < TRIGGER_COOLDOWN;
 
-              if (isCritical && isSustained && !inCooldown) {
-                console.log(`🚀 Triggering Claude for sustained: ${top.categoryName}`);
+              // Condition: Critical AND (Impulse OR Sustained) AND Not in Cooldown
+              if (isCritical && (isImpulse || isSustained) && !inCooldown) {
+                console.log(`🚀 Triggering Claude. Type: ${isImpulse ? 'IMPULSE' : 'SUSTAINED'}, Label: ${top.categoryName}`);
                 lastTriggerTime = now;
 
                 // Add to history
