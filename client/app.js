@@ -4,6 +4,19 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-audio@0.10.0";
 
 console.log("🟢 Silent Sentinel Script Loaded v2.1");
+let lastImpulseTime = 0;
+
+const IMPULSIVE_SOUNDS = [
+  "gunshot",
+  "shot",
+  "glass",
+  "shatter",
+  "break",
+  "explosion",
+  "firecracker",
+  "balloon pop"
+];
+
 
 // --- UI Elements ---
 const startBtn = document.getElementById("startBtn");
@@ -58,6 +71,11 @@ function isCriticalSound(label) {
   const lower = label.toLowerCase();
   return CRITICAL_SOUNDS.some(critical => lower.includes(critical));
 }
+function isImpulsiveSound(label) {
+  const l = label.toLowerCase();
+  return IMPULSIVE_SOUNDS.some(s => l.includes(s));
+}
+
 
 async function sendToServer(soundData) {
   try {
@@ -139,9 +157,30 @@ function addToLog(label, score, critical = false) {
   // Note: We don't partial-trigger alertBox here anymore for "critical", 
   // we rely on Claude for the big red alert, unless it's very obvious?
   // Keeping the yellow warning for local detection is fine.
-  if (critical && score > 0.15) {
-    // Optional: Visual indicator of local detection before Claude confirms
+  const now = Date.now();
+
+if (critical) {
+  // 🚨 IMPULSIVE → trigger instantly (with cooldown)
+  if (isImpulsiveSound(label)) {
+    if (now - lastImpulseTime > 2000) { // 2s cooldown
+      lastImpulseTime = now;
+      alertBox.classList.remove("hidden");
+      alertBox.textContent = `🚨 ${label.toUpperCase()}`;
+      setTimeout(() => alertBox.classList.add("hidden"), 3000);
+
+      // 👉 CALL CLAUDE IMMEDIATELY HERE
+    }
   }
+  // 🚨 CONTINUOUS → existing behavior (no change)
+  else if (score > 0.08) {
+    alertBox.classList.remove("hidden");
+    alertBox.textContent = `🚨 ${label.toUpperCase()}`;
+    setTimeout(() => alertBox.classList.add("hidden"), 3000);
+
+    // 👉 existing Claude call remains
+  }
+}
+
 }
 
 startBtn.addEventListener('click', async () => {
