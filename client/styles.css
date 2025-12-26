@@ -1,0 +1,257 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+h1 {
+    font-size: 2.8rem;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    color: #94a3b8;
+    font-size: 1.1rem;
+}
+
+.control-panel {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 24px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+button {
+    flex: 1;
+    max-width: 220px;
+    padding: 14px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+#startBtn {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+}
+
+#startBtn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+}
+
+#startBtn.active {
+    background: #10b981;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+#stopBtn {
+    background: #1e293b;
+    color: #64748b;
+}
+
+#stopBtn:not(:disabled) {
+    background: #ef4444;
+    color: white;
+}
+
+#stopBtn:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+#status {
+    text-align: center;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.card h2 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6366f1;
+    margin-bottom: 12px;
+}
+
+#soundLabel {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+}
+
+#confidence {
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+/* AI Verdict Styles */
+#claudeVerdict {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 5px 0;
+}
+
+.verdict-emergency {
+    color: #f87171;
+    text-shadow: 0 0 15px rgba(248, 113, 113, 0.3);
+}
+
+.verdict-warning {
+    color: #fbbf24;
+}
+
+.verdict-ignore {
+    color: #34d399;
+}
+
+.analyzing {
+    color: #60a5fa;
+    animation: pulse-text 1.5s infinite;
+}
+
+@keyframes pulse-text {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Audio Level */
+.audio-level-bar {
+    width: 100%;
+    height: 8px;
+    background: #1e293b;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 15px 0;
+}
+
+.audio-level-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #10b981, #fbbf24, #ef4444);
+    transition: width 0.1s ease;
+}
+
+/* Alert Box */
+#alertBox {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ef4444;
+    color: white;
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-weight: 700;
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5);
+    z-index: 1000;
+    animation: slide-down 0.3s ease-out;
+}
+
+@keyframes slide-down {
+    from {
+        transform: translate(-50%, -20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+.hidden {
+    display: none;
+}
+
+/* Detection Log */
+#detectionLog {
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 8px;
+}
+
+.log-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.log-entry.critical {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.05);
+}
+
+.log-time {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.log-label {
+    font-weight: 500;
+}
+
+.log-score {
+    color: #10b981;
+    font-weight: 600;
+}

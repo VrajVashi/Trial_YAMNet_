@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Silent Sentinel</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>🛡️ Silent Sentinel</h1>
+      <p class="subtitle">Edge AI Sound Detection (YAMNet)</p>
+    </header>
+
+    <div class="control-panel">
+      <div class="controls">
+        <button id="startBtn">Start Monitoring</button>
+        <button id="stopBtn" disabled>Stop Monitoring</button>
+      </div>
+      <p id="status">Status: Idle</p>
+    </div>
+
+    <div class="card">
+      <h2>Detected Sound</h2>
+      <p id="soundLabel">—</p>
+      <p id="confidence">—</p>
+    </div>
+
+    <div class="card" id="claudeCard">
+      <h2>AI Safety Verdict</h2>
+      <p id="claudeVerdict">Waiting for detection...</p>
+      <p id="claudeReason" class="subtitle"></p>
+      <p id="claudeRecommendation" class="recommendation"></p>
+    </div>
+
+    <div class="card">
+      <h2>Audio Level</h2>
+      <div class="audio-level-bar">
+        <div id="audioLevelBar" class="audio-level-fill"></div>
+      </div>
+      <p class="subtitle">RMS: <span id="rmsValue">0.0000</span></p>
+    </div>
+
+    <div class="card">
+      <h2>Detection Log</h2>
+      <div id="detectionLog"></div>
+    </div>
+
+    <div id="alertBox" class="hidden">🚨 CRITICAL SOUND</div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+
+</html>
