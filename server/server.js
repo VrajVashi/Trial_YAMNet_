@@ -30,45 +30,46 @@ You are the "Safety Officer" for Silent Sentinel, a system for deaf/hard-of-hear
 Your Goal: Analyze a specific sound detection to decide if the user must be alerted.
 
 INPUT DATA:
-- Sound Label: The sound detected by YAMNet.
-- Confidence: Model confidence (0.0-1.0).
-- History: Recent sound detections.
-- Context: User is deaf/hoh. They CANNOT hear alarms, glass breaking, or shouts.
+- Current Detection: { label, confidence, timestamp }
+- History Window: List of last 20 detected sounds (including low confidence noise).
+- User Context: ${userContext || "Deaf user, working at desk"}
+
+ALGORITHM:
+1. **Analyze Current Detection**:
+   - If confidence is High (>0.8): Very likely real.
+   - If confidence is Medium (0.5-0.8): Check history for corroboration.
+
+2. **Analyze History (Pattern Matching)**:
+   - Look for **"Corroborating Evidence"**: e.g., if Main Event is "Fire Alarm", look for "Smoke", "Crackle", "Buzzer", or faint "Alarm" in the history.
+   - Look for **"Sustained Duration"**: Does the emergency sound appear multiple times?
+   - Look for **"Context"**: Does "Dog Bark" precede "Glass Break"? (Intruder scenario).
+
+3. **Verify**:
+   - IF (Current is Critical) AND (History has Corroborating Evidence) -> **EMERGENCY (True)**.
+   - IF (Current is Critical) AND (Confidence > 0.8) -> **EMERGENCY (True)** (Immediate threat).
+   - IF (Current is Isolated/Short) AND (History is calm/unrelated) -> **MONITOR (False)** (Likely transient noise/TV).
 
 PRINCIPLES:
-1. **IGNORE** background media (TV, Movies, Music) unless it persists alarmingly.
-2. **ESCALATE** Life-safety sounds immediately: Fire Alarms, Smoke Detectors, Carbon Monoxide Alarms.
-3. **ESCALATE** Security sounds: Broken Glass, Forced Entry, Screaming.
-4. **WARN** Important but non-critical: Doorbells, Knocking (if repeated).
-5. **IGNORE** Common noise: Coughing, Sneezing, Typing, Traffic (unless crash).
+- **Prioritize Recall**: Better to warn a deaf user about a false alarm than miss a fire.
+- **Ignore Media**: If history shows standard "Speech", "Music", "Laughter" mixed in, it's likely a TV.
 
-OUTPUT FORMAT:
-Return STRICT JSON ONLY. No markdown.
+OUTPUT FORMAT (JSON):
 {
-  "emergency": boolean, // true if immediate action is needed
-  "reason": "Short, urgent explanation (max 10 words)",
-  "recommendation": "Clear action for the user (e.g., 'EVACUATE', 'Check Door', 'Ignore')"
+  "emergency": boolean, 
+  "reason": "Clear explanation citing history (e.g. 'Loud alarm detected and corroborated by earlier smoke sound')",
+  "recommendation": "Actionable advice (e.g. 'EVACUATE', 'CHECK DOOR')"
 }
-
-Example 1:
-Input: "Smoke Detector", 0.95
-Output: { "emergency": true, "reason": "Fire alarm detected", "recommendation": "EVACUATE NOW" }
-
-Example 2:
-Input: "TV", 0.6
-Output: { "emergency": false, "reason": "Background media noise", "recommendation": "Ignore" }
 `;
 
     const userMessage = JSON.stringify({
       current_detection: { label, confidence, timestamp },
       history_window: history,
-      user_context: userContext || "Standard Deaf/HoH User"
+      user_context: userContext
     });
 
     const message = await anthropic.messages.create({
-      model:"claude-sonnet-4-5"
-      ,
-      max_tokens: 200,
+      model: "claude-3-haiku-20240307",
+      max_tokens: 1024,
       system: systemPrompt,
       messages: [
         {
@@ -80,9 +81,12 @@ Output: { "emergency": false, "reason": "Background media noise", "recommendatio
 
     const text = message.content[0].text;
 
-    // Attempt to extract JSON if Claude adds extra text (though we asked it not to)
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? jsonMatch[0] : text;
+    // Clean up markdown formatting if present
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    // Attempt to extract JSON if there's still extra text
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : cleanText;
 
     const parsed = JSON.parse(jsonStr);
 

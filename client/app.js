@@ -159,27 +159,27 @@ function addToLog(label, score, critical = false) {
   // Keeping the yellow warning for local detection is fine.
   const now = Date.now();
 
-if (critical) {
-  // 🚨 IMPULSIVE → trigger instantly (with cooldown)
-  if (isImpulsiveSound(label)) {
-    if (now - lastImpulseTime > 2000) { // 2s cooldown
-      lastImpulseTime = now;
+  if (critical) {
+    // 🚨 IMPULSIVE → trigger instantly (with cooldown)
+    if (isImpulsiveSound(label)) {
+      if (now - lastImpulseTime > 2000) { // 2s cooldown
+        lastImpulseTime = now;
+        alertBox.classList.remove("hidden");
+        alertBox.textContent = `🚨 ${label.toUpperCase()}`;
+        setTimeout(() => alertBox.classList.add("hidden"), 3000);
+
+        // 👉 CALL CLAUDE IMMEDIATELY HERE
+      }
+    }
+    // 🚨 CONTINUOUS → existing behavior (no change)
+    else if (score > 0.08) {
       alertBox.classList.remove("hidden");
       alertBox.textContent = `🚨 ${label.toUpperCase()}`;
       setTimeout(() => alertBox.classList.add("hidden"), 3000);
 
-      // 👉 CALL CLAUDE IMMEDIATELY HERE
+      // 👉 existing Claude call remains
     }
   }
-  // 🚨 CONTINUOUS → existing behavior (no change)
-  else if (score > 0.08) {
-    alertBox.classList.remove("hidden");
-    alertBox.textContent = `🚨 ${label.toUpperCase()}`;
-    setTimeout(() => alertBox.classList.add("hidden"), 3000);
-
-    // 👉 existing Claude call remains
-  }
-}
 
 }
 
@@ -296,9 +296,21 @@ startBtn.addEventListener('click', async () => {
                 addToLog(top.categoryName, top.score, isCritical);
               }
 
+              // --- HISTORY LOGIC ---
+              // Continuous buffer of last 20 detections (for context)
+              history.push({
+                label: top.categoryName,
+                score: top.score,
+                isCritical: isCriticalSound(top.categoryName),
+                time: new Date().toLocaleTimeString()
+              });
+              if (history.length > 20) history.shift();
+
+
               // --- ENHANCED TRIGGER LOGIC ---
-              // 1. Logic for Impulse Sounds (Gunshot, Glass Break) -> Immediate Trigger
-              // 2. Logic for Sustained Sounds (Alarm, Siren) -> Wait for threshold
+              // 1. High Confidence (>= 50%): IMMEDIATE Trigger
+              // 2. Impulse Sounds: IMMEDIATE Trigger
+              // 3. Sustained Sounds: Wait for threshold (Low confidence / noisy environment)
 
               const IMPULSE_SOUNDS = [
                 'gunshot', 'shot', 'glass', 'break', 'shatter', 'explosion', 'crash'
@@ -312,23 +324,20 @@ startBtn.addEventListener('click', async () => {
               const now = Date.now();
               const isSustained = soundTracker.count >= SUSTAINED_THRESHOLD;
               const isImpulse = isImpulseSound(top.categoryName);
+              const isHighConfidence = top.score >= 0.50; // New Rule
               const inCooldown = (now - lastTriggerTime) < TRIGGER_COOLDOWN;
 
-              // Condition: Critical AND (Impulse OR Sustained) AND Not in Cooldown
-              if (isCritical && (isImpulse || isSustained) && !inCooldown) {
-                console.log(`🚀 Triggering Claude. Type: ${isImpulse ? 'IMPULSE' : 'SUSTAINED'}, Label: ${top.categoryName}`);
+              // Condition: Critical AND (HighConf OR Impulse OR Sustained) AND Not in Cooldown
+              if (isCritical && (isHighConfidence || isImpulse || isSustained) && !inCooldown) {
+                console.log(`🚀 Triggering Claude. Reason: ${isHighConfidence ? 'HIGH_CONF' : (isImpulse ? 'IMPULSE' : 'SUSTAINED')}, Label: ${top.categoryName}`);
                 lastTriggerTime = now;
-
-                // Add to history
-                history.push({ label: top.categoryName, time: new Date().toLocaleTimeString() });
-                if (history.length > 5) history.shift();
 
                 sendToServer({
                   label: top.categoryName,
                   confidence: top.score,
                   timestamp: new Date().toISOString(),
                   history: history,
-                  userContext: "Deaf user, working at desk." // Can be dynamic later
+                  userContext: "Deaf user, working at desk."
                 });
               }
             } else {
